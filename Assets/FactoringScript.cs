@@ -1,10 +1,6 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
-using KModkit;
 
 public class FactoringScript : MonoBehaviour {
 
@@ -22,6 +18,7 @@ public class FactoringScript : MonoBehaviour {
     char Answer = '?';
     int stages = 0;
     string Letters = "ABCDEFGHI";
+    bool activated;
 
     //Logging
     static int moduleIdCounter = 1;
@@ -34,11 +31,21 @@ public class FactoringScript : MonoBehaviour {
         foreach (KMSelectable Button in Buttons) {
             Button.OnInteract += delegate () { buttonPress(Button); return false; };
         }
+
+        GetComponent<KMBombModule>().OnActivate += Activate;
     }
 
     // Use this for initialization
     void Start () {
+        DisplayText.text = "";
         GenerateStage();
+    }
+
+    // Use when the lights turn on
+    void Activate()
+    {
+        DisplayText.text = PuzzleString;
+        activated = true;
     }
 
     void GenerateStage() {
@@ -53,7 +60,8 @@ public class FactoringScript : MonoBehaviour {
                 default: Debug.Log("Hey Blan fucked up his coding, please contact him. --Gary"); break;
             }
         }
-        DisplayText.text = PuzzleString;
+        if (activated)
+            DisplayText.text = PuzzleString;
 
         switch (PuzzleString[0]) {
             case 'A': case 'B': //If the first letter is A or B...
@@ -125,9 +133,9 @@ public class FactoringScript : MonoBehaviour {
     }
 
     void buttonPress(KMSelectable Button) {
-        if (!moduleSolved) {
+        if (!moduleSolved && activated) {
             Button.AddInteractionPunch();
-            GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
+            Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, Button.transform);
             if (Answer == 'X') {
                 stages += 1;
                 if (stages != 3) {
@@ -204,6 +212,19 @@ public class FactoringScript : MonoBehaviour {
                 }
             }
             yield break;
+        }
+    }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        while (!activated) yield return true;
+        for (int i = stages; i < 3; i++)
+        {
+            if (Answer == 'X')
+                Buttons[UnityEngine.Random.Range(0, 9)].OnInteract();
+            else
+                Buttons[Letters.IndexOf(Answer)].OnInteract();
+            yield return new WaitForSeconds(0.1f);
         }
     }
 }
