@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
@@ -6,6 +7,7 @@ public class FactoringScript : MonoBehaviour {
 
     public KMBombInfo Bomb;
     public KMAudio Audio;
+    public KMRuleSeedable RuleSeed;
 
     public KMSelectable[] Buttons;
     public TextMesh DisplayText;
@@ -13,6 +15,8 @@ public class FactoringScript : MonoBehaviour {
     public GameObject[] StageLEDs;
     public Material Green;
 
+    MonoRandom random;
+    Dictionary<string, char> ruleSeedTree = new Dictionary<string, char>();
     int RNG = -1;
     string PuzzleString = "";
     char Answer = '?';
@@ -38,7 +42,60 @@ public class FactoringScript : MonoBehaviour {
     // Use this for initialization
     void Start () {
         DisplayText.text = "";
+        random = RuleSeed.GetRNG();
+        if (random.Seed != 1)
+        {
+            Debug.LogFormat("[Factoring #{0}] Using rule seed: {1}", moduleId, random.Seed);
+            for (int a = 0; a < 4; a++)
+            {
+                if (random.Next(1, 101) <= 20)
+                    ruleSeedTree.Add(Letters[a].ToString(), GetRandomRuleSeedAnswer());
+                else
+                {
+                    for (int b = 0; b < 4; b++)
+                    {
+                        if (random.Next(1, 101) <= 40)
+                            ruleSeedTree.Add(Letters[a].ToString() + Letters[b].ToString(), GetRandomRuleSeedAnswer());
+                        else
+                        {
+                            for (int c = 0; c < 4; c++)
+                            {
+                                if (random.Next(1, 101) <= 60)
+                                    ruleSeedTree.Add(Letters[a].ToString() + Letters[b].ToString() + Letters[c].ToString(), GetRandomRuleSeedAnswer());
+                                else
+                                {
+                                    for (int d = 0; d < 4; d++)
+                                    {
+                                        if (random.Next(1, 101) <= 80)
+                                            ruleSeedTree.Add(Letters[a].ToString() + Letters[b].ToString() + Letters[c].ToString() + Letters[d].ToString(), GetRandomRuleSeedAnswer());
+                                        else
+                                        {
+                                            for (int e = 0; e < 4; e++)
+                                                ruleSeedTree.Add(Letters[a].ToString() + Letters[b].ToString() + Letters[c].ToString() + Letters[d].ToString() + Letters[e].ToString(), GetRandomRuleSeedAnswer());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Debug.LogFormat("<Factoring #{0}> The diagram for this seed is:", moduleId);
+            foreach (KeyValuePair<string, char> entry in ruleSeedTree)
+                Debug.LogFormat("<Factoring #{0}> {1} -> {2}", moduleId, entry.Key, entry.Value);
+        }
         GenerateStage();
+    }
+
+    char GetRandomRuleSeedAnswer()
+    {
+        int choice = random.Next(1, 4);
+        if (choice == 1)
+            return 'X';
+        else if (choice == 2)
+            return 'L';
+        else
+            return Letters[random.Next(0, Letters.Length)];
     }
 
     // Use when the lights turn on
@@ -63,64 +120,96 @@ public class FactoringScript : MonoBehaviour {
         if (activated)
             DisplayText.text = PuzzleString;
 
-        switch (PuzzleString[0]) {
-            case 'A': case 'B': //If the first letter is A or B...
-                switch (PuzzleString[1]) {
-                    case 'A': case 'B': //If the second letter is A or B...
-                        switch (PuzzleString[2]) {
-                            case 'A': //If the third letter is A...
-                                switch (PuzzleString[3]) {
-                                    case 'A': //If the fourth letter is A...
-                                        switch (PuzzleString[4]) {
-                                            case 'A': //If the fifth letter is A...
-                                                Answer = 'A';
-                                                break;
-                                            case 'B': case 'C': //If the fifth letter is B or C...
-                                                Answer = PuzzleString[4];
-                                                break;
-                                            default: //If the fifth letter is D...
-                                                Answer = 'X';
-                                                break;
-                                        }
-                                        break;
-                                    case 'B': case 'C': //If the fourth letter is B or C...
-                                        Answer = PuzzleString[4];
-                                        break;
-                                    default: //If the fourth letter is D...
-                                        Answer = 'X';
-                                        break;
-                                }
-                                break;
-                            case 'B': case 'C': //If the third letter is B or C...
-                                Answer = PuzzleString[4];
-                                break;
-                            default: //If the third letter is D...
-                                Answer = 'X';
-                                break;
-                        }
-                        break;
-                    default: // If the second letter is C or D...
-                        switch (PuzzleString[2]) {
-                            case 'A': // If the third letter is A...
-                                switch (PuzzleString[3]) {
-                                    case 'A': case 'B': // If the fourth letter is A or B...
-                                        Answer = 'G';
-                                        break;
-                                    default: // If the fourth letter is C or D...
-                                        Answer = PuzzleString[4];
-                                        break;
-                                }
-                                break;
-                            default: // If the third letter is B, C or D...
-                                Answer = 'B';
-                                break;
-                        }
-                        break;
+        if (random.Seed == 1)
+        {
+            switch (PuzzleString[0])
+            {
+                case 'A':
+                case 'B': //If the first letter is A or B...
+                    switch (PuzzleString[1])
+                    {
+                        case 'A':
+                        case 'B': //If the second letter is A or B...
+                            switch (PuzzleString[2])
+                            {
+                                case 'A': //If the third letter is A...
+                                    switch (PuzzleString[3])
+                                    {
+                                        case 'A': //If the fourth letter is A...
+                                            switch (PuzzleString[4])
+                                            {
+                                                case 'A': //If the fifth letter is A...
+                                                    Answer = 'A';
+                                                    break;
+                                                case 'B':
+                                                case 'C': //If the fifth letter is B or C...
+                                                    Answer = PuzzleString[4];
+                                                    break;
+                                                default: //If the fifth letter is D...
+                                                    Answer = 'X';
+                                                    break;
+                                            }
+                                            break;
+                                        case 'B':
+                                        case 'C': //If the fourth letter is B or C...
+                                            Answer = PuzzleString[4];
+                                            break;
+                                        default: //If the fourth letter is D...
+                                            Answer = 'X';
+                                            break;
+                                    }
+                                    break;
+                                case 'B':
+                                case 'C': //If the third letter is B or C...
+                                    Answer = PuzzleString[4];
+                                    break;
+                                default: //If the third letter is D...
+                                    Answer = 'X';
+                                    break;
+                            }
+                            break;
+                        default: // If the second letter is C or D...
+                            switch (PuzzleString[2])
+                            {
+                                case 'A': // If the third letter is A...
+                                    switch (PuzzleString[3])
+                                    {
+                                        case 'A':
+                                        case 'B': // If the fourth letter is A or B...
+                                            Answer = 'G';
+                                            break;
+                                        default: // If the fourth letter is C or D...
+                                            Answer = PuzzleString[4];
+                                            break;
+                                    }
+                                    break;
+                                default: // If the third letter is B, C or D...
+                                    Answer = 'B';
+                                    break;
+                            }
+                            break;
+                    }
+                    break;
+                default: // If the first letter is C or D...
+                    Answer = PuzzleString[4];
+                    break;
+            }
+        }
+        else
+        {
+            string tempPuzzleString = PuzzleString.ToString();
+            for (int i = 0; i < 5; i++)
+            {
+                if (ruleSeedTree.ContainsKey(tempPuzzleString))
+                {
+                    if (ruleSeedTree[tempPuzzleString] == 'L')
+                        Answer = PuzzleString[4];
+                    else
+                        Answer = ruleSeedTree[tempPuzzleString];
+                    break;
                 }
-                break;
-            default: // If the first letter is C or D...
-                Answer = PuzzleString[4];
-                break;
+                tempPuzzleString = tempPuzzleString.Remove(tempPuzzleString.Length - 1, 1);
+            }
         }
 
         Debug.LogFormat("[Factoring #{0}] Stage {1}: Sequence is {2}, Answer is {3}", moduleId, stages + 1, PuzzleString, Answer);
