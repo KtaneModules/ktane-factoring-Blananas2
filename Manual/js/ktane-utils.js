@@ -51,6 +51,10 @@ e.onload = function()
                 <h3>Dark Mode</h3>
                 <div><input type='checkbox' id='dark-mode-enabled'>&nbsp;<label for='dark-mode-enabled'>Enabled</label> (Alt-W)</div>
             </div>
+            <div class='option-group'>
+                <h3>Developer mode</h3>
+                <div><input type='checkbox' id='developer-mode-enabled'>&nbsp;<label for='developer-mode-enabled'>Enabled</label> (Alt-P)</div>
+            </div>
         </div>`).appendTo("body");
 
         // DARK MODE
@@ -58,16 +62,49 @@ e.onload = function()
         {
             if ($('#dark-mode-enabled').prop('checked'))
             {
-                $("body").addClass("dark");
+                $("body,.darkable").addClass("dark");
                 localStorage.setItem('ktane-dark-mode', true);
             }
             else
             {
-                $("body").removeClass("dark");
+                $("body,.darkable").removeClass("dark");
                 localStorage.setItem('ktane-dark-mode', false);
             }
         }
-        $('#dark-mode-enabled').click(function() { updateDarkMode(); });
+        $('#dark-mode-enabled').click(updateDarkMode);
+        // DEVELOPER MODE: Highlight overflow, matching module name headers, only one flavour text.
+        function updateDeveloperMode()
+        {
+            if ($('#developer-mode-enabled').prop('checked'))
+            {
+                $("body").addClass("developer-mode");
+                const infoDiv = $("<div>").addClass("developer-mode-warning").append($("<h3>").text("DEVELOPER MODE (Alt-P)")).insertAfter($(".section"));
+                const flavourTextCounts = document.getElementsByClassName("flavour-text").length;
+                if (flavourTextCounts > 1) {
+                    $(".flavour-text").addClass("developer-mode-warning");
+                    $("<p>").text("There is more than one element with the \"flavour-text\" class. Use the \"comment\" class for all but the actual flavour text immediately following the title.").appendTo(infoDiv);
+                } else if (flavourTextCounts === 0)
+                    $("<p>").text("There is no flavour text. There must be exactly one flavour text, which must have the \"flavour-text\" class.").appendTo(infoDiv);
+                const sectionTitles = document.getElementsByClassName("page-header-section-title");
+                for (let ix = 0; ix < sectionTitles.length; ix++) {
+                    if (sectionTitles[ix].textContent != sectionTitles[(ix + 1) % sectionTitles.length].textContent || sectionTitles[ix].textContent === "Module Name") {
+                        $(".page-header-section-title").addClass("developer-mode-warning");
+                        $("<p>").text("The section titles do not match or have not been changed from the default. (Ignore this if intentional)").appendTo(infoDiv);
+                        break;
+                    }
+                }
+                localStorage.setItem('ktane-developer-mode', true);
+            }
+            else
+            {
+                $("body").removeClass("developer-mode");
+                $(".flavour-text").removeClass("developer-mode-warning");
+                $(".page-header-section-title").removeClass("developer-mode-warning");
+                $(".developer-mode-warning").remove();
+                localStorage.setItem('ktane-developer-mode', false);
+            }
+        }
+        $('#developer-mode-enabled').click(updateDeveloperMode);
 
         // PAGE-LAYOUT OPTIONS
         function updateMultipageView()
@@ -177,8 +214,14 @@ e.onload = function()
             {
                 $('#dark-mode-enabled').click();
             }
+            // Alt-P: Developer mode
+            else if (k == "p" || event.keyCode === 80)
+            {
+                $('#developer-mode-enabled').click();
+            }
             // Alt-#: Select highlight color
-            else if (!ctrlSelectsColors && n !== null) {
+            else if (!ctrlSelectsColors && n !== null)
+            {
                 colorSelect.val(n).change();
             }
         });
@@ -364,10 +407,9 @@ e.onload = function()
                     }
                     else
                     {
-                        let table = element.parents("table, .highlightable-parent").first();
+                        let table = element.parents("table, tbody, .highlightable-parent").first();
 
-                        let a;
-                        let b;
+                        let a, b;
                         if (thisMode === 'column' && table.length)
                         {
                             a = element;
@@ -431,11 +473,8 @@ e.onload = function()
                                 return false;
                             });
                             elementHighlights.push({ mode: thisMode, element: highlight, remove: removeHighlight });
-
-                            if (mobileControls)
-                                highlight.insertAfter($('.ktane-highlight-btn').first());
-                            else
-                                highlight.appendTo(document.body);
+                            let sections = $(".section");
+                            highlight.insertAfter(sections[sections.length - 1]);
                         }
                     }
                     window.getSelection().removeAllRanges();
@@ -482,8 +521,11 @@ e.onload = function()
         $(`#page-layout-${pageLayout}`).prop('checked', true);
         let darkModeEnabled = localStorage.getItem('ktane-dark-mode');
         $('#dark-mode-enabled').prop('checked', darkModeEnabled == null ? false : darkModeEnabled == "true");
-        updateDarkMode();
+        let developerModeEnabled = localStorage.getItem('ktane-developer-mode');
+        $('#developer-mode-enabled').prop('checked', developerModeEnabled == null ? false : developerModeEnabled == "true");
         updateMultipageView();
+        updateDarkMode();
+        updateDeveloperMode();
         setColor(1);
     });
 };

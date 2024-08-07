@@ -13,9 +13,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: factoring
   title: Factoring
-  author: 
+  author: Blananas2, TheRealWitch, eXish
   description: "Recreation of a module by TheRealWitch.\r\n\r\nModule ID: factoring\r\n\r\nThe
     manual can be found here: https://ktane.timwi.de/HTML/Factoring.html"
-  version: 
+  version: 1.0
   outputFolder: build
   previewImage: {fileID: 2800000, guid: dc6f93609bd1dae4988577f0b5eb89dd, type: 3}
