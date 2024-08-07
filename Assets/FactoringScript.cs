@@ -1,9 +1,11 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
-public class FactoringScript : MonoBehaviour {
+public class FactoringScript : MonoBehaviour
+{
 
     public KMBombInfo Bomb;
     public KMAudio Audio;
@@ -29,49 +31,102 @@ public class FactoringScript : MonoBehaviour {
     int moduleId;
     private bool moduleSolved;
 
-    void Awake () {
+    void Awake()
+    {
         moduleId = moduleIdCounter++;
 
-        foreach (KMSelectable Button in Buttons) {
+        foreach (KMSelectable Button in Buttons)
+        {
             Button.OnInteract += delegate () { buttonPress(Button); return false; };
         }
 
         GetComponent<KMBombModule>().OnActivate += Activate;
     }
 
+    List<string> GetRandomSplit()
+    {
+        switch (random.Next(0, 5))
+        {
+            case 0:
+                switch (random.Next(0, 3))
+                {
+                    case 0: return new List<string> { "AB", "C", "D" };
+                    case 1: return new List<string> { "A", "BC", "D" };
+                    default: return new List<string> { "A", "B", "CD" };
+                }
+            default:
+                switch (random.Next(0, 3))
+                {
+                    case 0: return new List<string> { "A", "BCD" };
+                    case 1: return new List<string> { "AB", "CD" };
+                    default: return new List<string> { "ABC", "D" };
+                }
+        }
+    }
+
     // Use this for initialization
-    void Start () {
+    void Start()
+    {
         DisplayText.text = "";
         random = RuleSeed.GetRNG();
         if (random.Seed != 1)
         {
             Debug.LogFormat("[Factoring #{0}] Using rule seed: {1}", moduleId, random.Seed);
-            for (int a = 0; a < 4; a++)
+            foreach (var a in GetRandomSplit())
             {
+                var prefixesA = a.Select(ch => ch.ToString()).ToArray();
+
                 if (random.Next(1, 101) <= 20)
-                    ruleSeedTree.Add(Letters[a].ToString(), GetRandomRuleSeedAnswer());
+                {
+                    var answer = GetRandomRuleSeedAnswer();
+                    foreach (var prefix in prefixesA)
+                        ruleSeedTree.Add(prefix, answer);
+                }
                 else
                 {
-                    for (int b = 0; b < 4; b++)
+                    foreach (var b in GetRandomSplit())
                     {
+                        var prefixesB = b.SelectMany(ch => prefixesA.Select(prefix => prefix + ch)).ToArray();
+
                         if (random.Next(1, 101) <= 40)
-                            ruleSeedTree.Add(Letters[a].ToString() + Letters[b].ToString(), GetRandomRuleSeedAnswer());
+                        {
+                            var answer = GetRandomRuleSeedAnswer();
+                            foreach (var prefix in prefixesB)
+                                ruleSeedTree.Add(prefix, answer);
+                        }
                         else
                         {
-                            for (int c = 0; c < 4; c++)
+                            foreach (var c in GetRandomSplit())
                             {
+                                var prefixesC = c.SelectMany(ch => prefixesB.Select(prefix => prefix + ch)).ToArray();
+
                                 if (random.Next(1, 101) <= 60)
-                                    ruleSeedTree.Add(Letters[a].ToString() + Letters[b].ToString() + Letters[c].ToString(), GetRandomRuleSeedAnswer());
+                                {
+                                    var answer = GetRandomRuleSeedAnswer();
+                                    foreach (var prefix in prefixesC)
+                                        ruleSeedTree.Add(prefix, answer);
+                                }
                                 else
                                 {
-                                    for (int d = 0; d < 4; d++)
+                                    foreach (var d in GetRandomSplit())
                                     {
+                                        var prefixesD = d.SelectMany(ch => prefixesC.Select(prefix => prefix + ch)).ToArray();
+
                                         if (random.Next(1, 101) <= 80)
-                                            ruleSeedTree.Add(Letters[a].ToString() + Letters[b].ToString() + Letters[c].ToString() + Letters[d].ToString(), GetRandomRuleSeedAnswer());
+                                        {
+                                            var answer = GetRandomRuleSeedAnswer();
+                                            foreach (var prefix in prefixesD)
+                                                ruleSeedTree.Add(prefix, answer);
+                                        }
                                         else
                                         {
-                                            for (int e = 0; e < 4; e++)
-                                                ruleSeedTree.Add(Letters[a].ToString() + Letters[b].ToString() + Letters[c].ToString() + Letters[d].ToString() + Letters[e].ToString(), GetRandomRuleSeedAnswer());
+                                            foreach (var e in GetRandomSplit())
+                                            {
+                                                var prefixesE = e.SelectMany(ch => prefixesD.Select(prefix => prefix + ch)).ToArray();
+                                                var answer = GetRandomRuleSeedAnswer();
+                                                foreach (var prefix in prefixesE)
+                                                    ruleSeedTree.Add(prefix, answer);
+                                            }
                                         }
                                     }
                                 }
@@ -82,7 +137,7 @@ public class FactoringScript : MonoBehaviour {
             }
             Debug.LogFormat("<Factoring #{0}> The diagram for this seed is:", moduleId);
             foreach (KeyValuePair<string, char> entry in ruleSeedTree)
-                Debug.LogFormat("<Factoring #{0}> {1} -> {2}", moduleId, entry.Key, entry.Value);
+                Debug.LogFormat("<Factoring #{0}> {1} → {2}", moduleId, entry.Key, entry.Value);
         }
         GenerateStage();
     }
@@ -105,11 +160,14 @@ public class FactoringScript : MonoBehaviour {
         activated = true;
     }
 
-    void GenerateStage() {
+    void GenerateStage()
+    {
         PuzzleString = "";
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 5; i++)
+        {
             RNG = UnityEngine.Random.Range(0, 4);
-            switch (RNG) {
+            switch (RNG)
+            {
                 case 0: PuzzleString += "A"; break;
                 case 1: PuzzleString += "B"; break;
                 case 2: PuzzleString += "C"; break;
@@ -214,45 +272,64 @@ public class FactoringScript : MonoBehaviour {
 
         Debug.LogFormat("[Factoring #{0}] Stage {1}: Sequence is {2}, Answer is {3}", moduleId, stages + 1, PuzzleString, Answer);
 
-        if (stages == 1) {
+        if (stages == 1)
+        {
             StageLEDs[0].GetComponent<MeshRenderer>().material = Green;
-        } else if (stages == 2) {
+        }
+        else if (stages == 2)
+        {
             StageLEDs[1].GetComponent<MeshRenderer>().material = Green;
         }
     }
 
-    void buttonPress(KMSelectable Button) {
-        if (!moduleSolved && activated) {
+    void buttonPress(KMSelectable Button)
+    {
+        if (!moduleSolved && activated)
+        {
             Button.AddInteractionPunch();
             Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, Button.transform);
-            if (Answer == 'X') {
+            if (Answer == 'X')
+            {
                 stages += 1;
-                if (stages != 3) {
+                if (stages != 3)
+                {
                     Debug.LogFormat("[Factoring #{0}] Input for stage {1} is correct.", moduleId, stages);
                     GenerateStage();
-                } else {
+                }
+                else
+                {
                     Debug.LogFormat("[Factoring #{0}] Input for stage 3 is correct, module solved.", moduleId);
                     DisplayText.text = "Solved";
                     StageLEDs[2].GetComponent<MeshRenderer>().material = Green;
                     GetComponent<KMBombModule>().HandlePass();
                     moduleSolved = true;
                 }
-            } else {
-                for (int i = 0; i < 9; i++) {
-                    if (Button == Buttons[i]) {
-                        if (Answer == Letters[i]) {
+            }
+            else
+            {
+                for (int i = 0; i < 9; i++)
+                {
+                    if (Button == Buttons[i])
+                    {
+                        if (Answer == Letters[i])
+                        {
                             stages += 1;
-                            if (stages != 3) {
+                            if (stages != 3)
+                            {
                                 Debug.LogFormat("[Factoring #{0}] Input for stage {1} is correct.", moduleId, stages);
                                 GenerateStage();
-                            } else {
+                            }
+                            else
+                            {
                                 Debug.LogFormat("[Factoring #{0}] Input for stage 3 is correct, module solved.", moduleId);
                                 DisplayText.text = "Solved";
                                 StageLEDs[2].GetComponent<MeshRenderer>().material = Green;
                                 GetComponent<KMBombModule>().HandlePass();
                                 moduleSolved = true;
                             }
-                        } else {
+                        }
+                        else
+                        {
                             Debug.LogFormat("[Factoring #{0}] Input for stage {1} is incorrect, strike!", moduleId, stages + 1);
                             GetComponent<KMBombModule>().HandleStrike();
                         }
@@ -263,40 +340,64 @@ public class FactoringScript : MonoBehaviour {
     }
 
     //I ADD TWITCH :D
-    #pragma warning disable 414
+#pragma warning disable 414
     private readonly string TwitchHelpMessage = @"!{0} press <letter> [Presses that letter]";
-    #pragma warning disable 414
+#pragma warning disable 414
 
-    IEnumerator ProcessTwitchCommand(string command){
+    IEnumerator ProcessTwitchCommand(string command)
+    {
         string[] parameters = command.Split(' ');
-        if (Regex.IsMatch(parameters[0], @"^\s*press\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+        if (Regex.IsMatch(parameters[0], @"^\s*press\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
             yield return null;
-            if (parameters.Length > 2) {
+            if (parameters.Length > 2)
+            {
                 yield return "sendtochaterror Too many parameters!";
             }
             else if (parameters.Length == 1)
             {
                 yield return "sendtochaterror Please specify the button you would like to press!";
-            } else {
-                if (Regex.IsMatch(parameters[1], @"^\s*a\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+            }
+            else
+            {
+                if (Regex.IsMatch(parameters[1], @"^\s*a\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
                     Buttons[0].OnInteract();
-                } else if (Regex.IsMatch(parameters[1], @"^\s*b\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+                }
+                else if (Regex.IsMatch(parameters[1], @"^\s*b\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
                     Buttons[1].OnInteract();
-                } else if (Regex.IsMatch(parameters[1], @"^\s*c\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+                }
+                else if (Regex.IsMatch(parameters[1], @"^\s*c\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
                     Buttons[2].OnInteract();
-                } else if (Regex.IsMatch(parameters[1], @"^\s*d\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+                }
+                else if (Regex.IsMatch(parameters[1], @"^\s*d\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
                     Buttons[3].OnInteract();
-                } else if (Regex.IsMatch(parameters[1], @"^\s*e\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+                }
+                else if (Regex.IsMatch(parameters[1], @"^\s*e\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
                     Buttons[4].OnInteract();
-                } else if (Regex.IsMatch(parameters[1], @"^\s*f\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+                }
+                else if (Regex.IsMatch(parameters[1], @"^\s*f\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
                     Buttons[5].OnInteract();
-                } else if (Regex.IsMatch(parameters[1], @"^\s*g\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+                }
+                else if (Regex.IsMatch(parameters[1], @"^\s*g\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
                     Buttons[6].OnInteract();
-                } else if (Regex.IsMatch(parameters[1], @"^\s*h\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+                }
+                else if (Regex.IsMatch(parameters[1], @"^\s*h\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
                     Buttons[7].OnInteract();
-                } else if (Regex.IsMatch(parameters[1], @"^\s*i\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+                }
+                else if (Regex.IsMatch(parameters[1], @"^\s*i\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                {
                     Buttons[8].OnInteract();
-                } else {
+                }
+                else
+                {
                     yield return "sendtochaterror That button is not on the module!";
                 }
             }
