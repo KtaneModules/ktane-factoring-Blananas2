@@ -1,0 +1,10 @@
+{
+  "name": "factoring-Editor",
+  "references": [
+    "factoring"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": []
+}
